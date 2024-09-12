@@ -4,8 +4,19 @@ import cv2
 import mediapipe as mp
 import numpy as np
 import time
-from datetime import datetime  # To generate unique file names
-from fpdf import FPDF   # Library to create PDF files
+from fpdf import FPDF
+import pyttsx3  # Import pyttsx3 for text-to-speech
+
+# Initialize the text-to-speech engine
+engine = pyttsx3.init()
+
+# List all available voices and select an Indian English voice
+voices = engine.getProperty('voices')
+for voice in voices:
+    if 'India' in voice.name or 'Indian' in voice.name or 'English (India)' in voice.name:
+        engine.setProperty('voice', voice.id)
+        print(f"Selected voice: {voice.name}")
+        break
 
 # Loading the Pre-trained Model
 model_dict = pickle.load(open('./model.p', 'rb'))
@@ -43,6 +54,7 @@ def add_word_to_sentence():
     if current_word:
         predicted_letters.append(''.join(current_word))
         current_word = []
+        speak_sentence()  # Speak the sentence whenever a new word is added
 
 def clear_word():
     global current_word
@@ -66,20 +78,21 @@ def clear_all():
     clear_sentence()
     clear_word()
 
-# Function to save the sentence to a text file with a unique name
 def save_to_text_file():
-    filename = "predicted_text_" + datetime.now().strftime("%Y%m%d_%H%M%S") + ".txt"
-    with open(filename, "w") as file:
+    with open("predicted_text.txt", "w") as file:
         file.write(get_sentence())
 
-# Function to save the sentence to a PDF file with a unique name
 def save_to_pdf_file():
-    filename = "predicted_text_" + datetime.now().strftime("%Y%m%d_%H%M%S") + ".pdf"
     pdf = FPDF()
     pdf.add_page()
     pdf.set_font("Arial", size=12)
     pdf.multi_cell(0, 10, get_sentence())
-    pdf.output(filename)
+    pdf.output("predicted_text.pdf")
+
+def speak_sentence():
+    sentence = get_sentence()
+    engine.say(sentence)
+    engine.runAndWait()
 
 while True:
     data_aux = []
@@ -170,10 +183,12 @@ while True:
         break
     elif key == ord('c'):
         clear_all()
-    elif key == ord('t'):  # Press 't' to save to a new text file
+    elif key == ord('t'):  # Press 't' to save to text file
         save_to_text_file()
-    elif key == ord('p'):  # Press 'p' to save to a new PDF file
+    elif key == ord('p'):  # Press 'p' to save to PDF file
         save_to_pdf_file()
+    elif key == ord('s'):  # Press 's' to speak the current sentence
+        speak_sentence()
 
 cap.release()
 cv2.destroyAllWindows()
